@@ -1,3 +1,4 @@
+const { response } = require('express');
 const express = require('express')
 const { v4: uuidv4 } = require('uuid')
 
@@ -59,6 +60,20 @@ app.get("/statement/:cpf", (req, res) => {
   }
   
   return res.json(customer.statement)
+})
+
+app.get("/account/:cpf", (req, res) => {
+  const { cpf } = req.params;
+
+  const customerAccountAccessAlowed = customers.some((customer) => customer.cpf === cpf)
+
+  if (!customerAccountAccessAlowed) {
+    return res.status(400).json({error: "Access not allowed"})
+  }
+
+  const customer = customers.find((customer) => customer.cpf === cpf)
+
+  return res.json(customer)
 })
  
 app.get("/accounts", (req, res) => { 
