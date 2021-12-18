@@ -19,7 +19,7 @@ function verifyIfAccountExists(req, res, next) {
   const customer = customers.find((customer) => customer.cpf === cpf)
 
   if(!customer) {
-    return res.status(400).json({eror: "Customer not found"})
+    return res.status(400).json({error: "Customer not found"})
   }
 
   /* Aqui é onde eu instancio os dados para enviar para a rota usar */
@@ -76,11 +76,33 @@ app.post("/new-account", (req, res) => {
 app.get("/statement", verifyIfAccountExists, (req, res) => { 
   /* Para puxar os dados do middleware basta instanciar a req criada no middleware */
   const {customer} = req;
+  
   return res.json(customer.statement)
 })
 
-app.get("/account/:cpf", (req, res) => {
-  const { cpf } = req.params;
+/** Hora de criar o depósito, preciso realizar um push dentro de customer.statement
+ * e definir o que receber dentro do deposito. Para isso vou definir isso como statementOperation
+ * e separar por tipo crédito e saque.
+*/
+app.post("/deposit", verifyIfAccountExists, (req, res) => {
+  const { description, amount } = req.body;
+
+  const { customer } = req;
+
+  const statementOperation = {
+    description,
+    amount,
+    created_at: new Date(),
+    type: "credit",
+  };
+
+  customer.statement.push(statementOperation);
+
+  return res.status(201).send();
+});
+
+app.get("/account", verifyIfAccountExists,(req, res) => {
+  const { cpf } = req.headers;
 
   const customerAccountAccessAlowed = customers.some((customer) => customer.cpf === cpf)
 
@@ -92,9 +114,5 @@ app.get("/account/:cpf", (req, res) => {
 
   return res.json(customer)
 })
- 
-app.get("/accounts", (req, res) => { 
-  return res.json(customers)
- });
 
-app.listen(3332)
+app.listen(3333)
