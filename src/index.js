@@ -28,6 +28,25 @@ function verifyIfAccountExists(req, res, next) {
   return next();
 }
 
+/**
+- Function getBalance com o objetivo de fazer os calculos e me retornar se tem dinheiro na conta e quanto que tem.
+- Para realizaão dos cálculos vou usar a operação reduce do JS que precisa de dois parâmetros(o valor final e o inicial),
+- o valor final sera a function que recebe um acumulador e um operation e vai retornar o valor final,jae o valor incial sera definido manualmente como zero .
+- acumulador (responsável por armazear o valor final) e o operation (tem os dados da operação, tipo e valor). No reduce eu vou definir que
+- sempre que for credit é para pegar o valor da operation e somar ao valor final(acumalador) e se não for credit vai
+- subtrair o valor recebido de operation.amount.
+- LEMBRANDO QUE ESSA FUNCTION PRECISA RECEBER DADOS DO STATEMENT, POR ISSO ELE SERA UM PARAMETRO RECEBIDO*/
+function getBalance(statement) {
+  const balance = statement.reduce((acc, operation) => {
+    if(operation.type === 'credit'){
+      return acc + operation.amount
+    }else{
+      return acc - operation.amount
+    }
+  }, 0); /**Como para uma conta eu preciso do valor inicial, neste caso o segundo parametro recebido pelo reduce sera 0 */
+  return balance
+} 
+
 const customers = [];
 
 /**
@@ -94,6 +113,29 @@ app.post("/deposit", verifyIfAccountExists, (req, res) => {
     amount,
     created_at: new Date(),
     type: "credit",
+  };
+
+  customer.statement.push(statementOperation);
+
+  return res.status(201).send();
+});
+
+app.post("/withdraw", verifyIfAccountExists, (req, res) => {
+  const { amount } = req.body /*Pegando a informação do valor de saque para fazer o balanço e extrato*/
+  const { customer } = req;
+  
+  /**Aqui estou peando o valor final da soma deste cliente e instanciando em uma variavel para usar */
+  const balance = getBalance(customer.statement);
+
+  /*Verificando se o valor pedido é maior que o saldo, se for já sera barrado. */
+  if(balance < amount) {
+    return res.status(400).json({error: "insufficient funds!"})
+  }
+
+  const statementOperation = {
+    amount,
+    created_at: new Date(),
+    type: "debit",
   };
 
   customer.statement.push(statementOperation);
