@@ -6,10 +6,32 @@ const app = express();
 /** Como estou usando json preciso de um middleware */
 app.use(express.json())
 
+/**
+ * Middleware que usarei para verificar em rotas espeíficas se a conta existe ou não.
+ * Um middleware diferente das outras funções tem 3 requisições, a diferencial é a next,
+ * ela é responsável pelo que acontecerá depois da verificação, passar para o próximo ou não.
+ * Posso passar dados usando um middleware ao definir uma requisição antes do NEXT
+ * que recebe os dados pre definidos (customer neste exemplo).
+ */
+function verifyIfAccountExists(req, res, next) {
+  const {cpf} = req.headers;
+
+  const customer = customers.find((customer) => customer.cpf === cpf)
+
+  if(!customer) {
+    return res.status(400).json({eror: "Customer not found"})
+  }
+
+  /* Aqui é onde eu instancio os dados para enviar para a rota usar */
+  req.customer = customer;
+  
+  return next();
+}
+
 const customers = [];
 
 /**
- * Um conta tera:
+ * Um conta terá:
  * cpf - string (recebe do usario)
  * name - string (recebe do usuario)
  * id - uid (vamos criar)
@@ -50,15 +72,10 @@ app.post("/new-account", (req, res) => {
   return res.status(201).send("congratulations! Your account has been created!")
 });
 
-app.get("/statement/:cpf", (req, res) => {
-  const {cpf} = req.params;
-
-  const customer = customers.find((customer) => customer.cpf === cpf)
-
-  if(!customer) {
-    return res.status(400).json({eror: "Customer not found"})
-  }
-  
+/**Para usar o middleware eu preciso colocar ele entre a rota e função */
+app.get("/statement", verifyIfAccountExists, (req, res) => { 
+  /* Para puxar os dados do middleware basta instanciar a req criada no middleware */
+  const {customer} = req;
   return res.json(customer.statement)
 })
 
@@ -80,4 +97,4 @@ app.get("/accounts", (req, res) => {
   return res.json(customers)
  });
 
-app.listen(3333)
+app.listen(3332)
