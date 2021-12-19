@@ -143,18 +143,42 @@ app.post("/withdraw", verifyIfAccountExists, (req, res) => {
   return res.status(201).send();
 });
 
-app.get("/account", verifyIfAccountExists,(req, res) => {
-  const { cpf } = req.headers;
+/**Statement by date*/
+/**To review */
+app.get("/statement/date", verifyIfAccountExists, (req, res) => {
+  const {customer} = req;
+	const {date} = req.query;
 
-  const customerAccountAccessAlowed = customers.some((customer) => customer.cpf === cpf)
+	const dateFormat = new Date(date + " 00:00");
 
-  if (!customerAccountAccessAlowed) {
-    return res.status(400).json({error: "Access not allowed"})
-  }
+	const statement = customer.statement.filter((statement) => statement.created_at.toDateString() === new Date(dateFormat).toDateString());
+  
+  return res.json(statement)
+});
 
-  const customer = customers.find((customer) => customer.cpf === cpf)
+app.put("/account", verifyIfAccountExists, (req, res) => {
+  const {name} = req.body;
+  const {customer} = req;
 
-  return res.json(customer)
-})
+  customer.name = name
+
+  return res.status(201).send();
+});
+
+app.delete("/account", verifyIfAccountExists, (req, res) => {
+  const {customer} = req;
+
+	customers.splice(customer, 1);
+
+	return res.status(200).json(customers)
+});
+
+app.get("/myaccount", verifyIfAccountExists, (req, res) => {
+  const {customer} = req;
+
+  const balance = getBalance(customer.statement);
+
+  return res.json({customer})
+});
 
 app.listen(3333)
